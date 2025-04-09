@@ -104,6 +104,26 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _clearPhotos() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      await _photoRepository.clearLocalPhotos();
+      setState(() {
+        _photos = [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error clearing photos: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -126,11 +146,24 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _fetchAndStorePhotos,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Fetch and Store Photos'),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _fetchAndStorePhotos,
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Fetch and Store Photos'),
+                ),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _clearPhotos,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Clear All Photos'),
+                ),
+              ],
             ),
           ),
           if (_error != null)
