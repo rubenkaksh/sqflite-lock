@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'models/photo.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -36,6 +37,16 @@ class DatabaseService {
         date TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE photos(
+        id INTEGER PRIMARY KEY,
+        albumId INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        url TEXT NOT NULL,
+        thumbnailUrl TEXT NOT NULL
+      )
+    ''');
   }
 
   // Insert a transaction
@@ -69,6 +80,45 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // Insert a photo
+  Future<int> insertPhoto(Photo photo) async {
+    final Database db = await database;
+    return await db.insert(
+      'photos',
+      photo.toJson(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Insert multiple photos
+  Future<void> insertPhotos(List<Photo> photos) async {
+    final Database db = await database;
+    await db.transaction((txn) async {
+      for (var photo in photos) {
+        await txn.insert(
+          'photos',
+          photo.toJson(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    });
+  }
+
+  // Get all photos
+  Future<List<Photo>> getAllPhotos() async {
+    final Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('photos');
+    return List.generate(maps.length, (i) {
+      return Photo.fromJson(maps[i]);
+    });
+  }
+
+  // Delete all photos
+  Future<int> deleteAllPhotos() async {
+    final Database db = await database;
+    return await db.delete('photos');
   }
 
   // Execute multiple operations in a transaction
