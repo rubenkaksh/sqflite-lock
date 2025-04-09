@@ -21,7 +21,12 @@ class PhotoRepository {
             jsonList.map((json) => Photo.fromJson(json)).toList();
 
         // Store photos in local database
+        final startTime = DateTime.now();
         await _databaseService.insertPhotos(photos);
+        final endTime = DateTime.now();
+
+        print('Time to download ===========>');
+        print(endTime.difference(startTime).inMilliseconds);
 
         return photos;
       } else {

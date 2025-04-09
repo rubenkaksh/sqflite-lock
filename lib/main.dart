@@ -149,12 +149,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     itemBuilder: (context, index) {
                       final photo = _photos[index];
                       return ListTile(
-                        leading: Image.network(
-                          photo.thumbnailUrl,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
+                        // leading: Image.network(
+                        //   photo.thumbnailUrl,
+                        //   width: 50,
+                        //   height: 50,
+                        //   fit: BoxFit.cover,
+                        // ),
                         title: Text(photo.title),
                         subtitle: Text('Album ID: ${photo.albumId}'),
                       );
