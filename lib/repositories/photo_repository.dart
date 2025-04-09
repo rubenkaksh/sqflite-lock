@@ -20,14 +20,18 @@ class PhotoRepository {
         final List<Photo> photos =
             jsonList.map((json) => Photo.fromJson(json)).toList();
 
-        // Store photos in local database
+        // Convert photos to list of maps for bulk insert
+        final List<Map<String, dynamic>> photoMaps =
+            photos.map((photo) => photo.toJson()).toList();
+
+
         final startTime = DateTime.now();
-        await _databaseService.insertPhotos(photos);
+        // Store photos in local database using bulk insert
+        await _databaseService.bulkInsert('photos', photoMaps);
         final endTime = DateTime.now();
 
         print('Time to download ===========>');
         print(endTime.difference(startTime).inMilliseconds);
-
         return photos;
       } else {
         throw Exception('Failed to load photos');

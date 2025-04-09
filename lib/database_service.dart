@@ -92,7 +92,7 @@ class DatabaseService {
     );
   }
 
-  // Insert multiple photos
+  // Insert multiple photos using batch
   Future<void> insertPhotos(List<Photo> photos) async {
     final Database db = await database;
     final List<Map<String, dynamic>> storeables =
@@ -106,6 +106,41 @@ class DatabaseService {
         );
       }
     });
+  }
+
+  // Bulk insert method for efficient multiple row insertion
+  Future<void> bulkInsert(String table, List<Map<String, dynamic>> rows) async {
+    if (rows.isEmpty) return;
+
+    final Database db = await database;
+
+    // Get column names from the first row
+    final columns = rows.first.keys.toList();
+
+    // Create the bulk insert SQL
+    final String valuesString = List.generate(
+        rows.length,
+        (i) =>
+            '(' +
+            List.generate(columns.length, (j) => '?').join(', ') +
+            ')').join(', ');
+
+    final String sql = '''
+      INSERT OR REPLACE INTO $table 
+      (${columns.join(', ')}) 
+      VALUES $valuesString
+    ''';
+
+    // Flatten all values into a single list
+    final List<dynamic> args = [];
+    for (var row in rows) {
+      for (var column in columns) {
+        args.add(row[column]);
+      }
+    }
+
+    // Execute bulk insert
+    await db.execute(sql, args);
   }
 
   // Get all photos
