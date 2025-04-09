@@ -20,12 +20,12 @@ class PhotoRepository {
         final List<Photo> photos =
             jsonList.map((json) => Photo.fromJson(json)).toList();
 
-        // Store photos in local database
+        // Store photos using bulk insert for better performance
         final startTime = DateTime.now();
-        await _databaseService.insertPhotos(photos, attempt: attempt);
+        await _databaseService.bulkInsertPhotos(photos, attempt: attempt);
         final endTime = DateTime.now();
 
-        print('Time to download ===========>');
+        print('Time to insert ===========>');
         print(endTime.difference(startTime).inMilliseconds);
 
         return photos;
