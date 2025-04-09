@@ -110,20 +110,22 @@ class DatabaseService {
 
     print(' >>>============>>> GOING FOR WRITE');
 
+    await db.transaction((txn) async {
+      final Batch batch = txn.batch();
+
+      // Add all insert operations to the batch
+      for (var photo in storeables) {
+        batch.insert(
+          'photos',
+          photo,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      // Execute all operations in a single batch
+      await batch.commit(noResult: true);
+    });
     // Create a batch
-    final Batch batch = db.batch();
-
-    // Add all insert operations to the batch
-    for (var photo in storeables) {
-      batch.insert(
-        'photos',
-        photo,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-
-    // Execute all operations in a single batch
-    await batch.commit(noResult: true);
 
     print(' OOO============OOO DONE WITH WRITE');
   }

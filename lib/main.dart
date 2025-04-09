@@ -86,9 +86,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   fetchTogether() async {
     // Start fetching data in the background
-     _fetchAndStorePhotos();
+    _fetchAndStorePhotos();
 
-    Future.delayed(const Duration(milliseconds: 1000), _loadLocalPhotos);
+    Future.delayed(const Duration(milliseconds: 1500), _loadLocalPhotos);
   }
 
   Future<void> _fetchAndStorePhotos() async {
