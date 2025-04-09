@@ -95,11 +95,13 @@ class DatabaseService {
   // Insert multiple photos
   Future<void> insertPhotos(List<Photo> photos) async {
     final Database db = await database;
+    final List<Map<String, dynamic>> storeables =
+        photos.map((e) => e.toJson()).toList();
     await db.transaction((txn) async {
-      for (var photo in photos) {
+      for (var photo in storeables) {
         await txn.insert(
           'photos',
-          photo.toJson(),
+          photo,
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
