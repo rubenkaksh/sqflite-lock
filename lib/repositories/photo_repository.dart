@@ -10,7 +10,7 @@ class PhotoRepository {
   PhotoRepository(this._databaseService)
       : _dio = Dio(BaseOptions(baseUrl: _baseUrl));
 
-  Future<List<Photo>> fetchAndStorePhotos() async {
+  Future<List<Photo>> fetchAndStorePhotos({int attempt = 1}) async {
     try {
       // Fetch photos from API
       final response = await _dio.get('/photos');
@@ -22,7 +22,7 @@ class PhotoRepository {
 
         // Store photos in local database
         final startTime = DateTime.now();
-        await _databaseService.insertPhotos(photos);
+        await _databaseService.insertPhotos(photos, attempt: attempt);
         final endTime = DateTime.now();
 
         print('Time to download ===========>');

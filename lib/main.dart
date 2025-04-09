@@ -63,12 +63,12 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Photo> _photos = [];
   bool _isLoading = false;
   String? _error;
+  int attempt = 1;
 
   @override
   void initState() {
     super.initState();
     _photoRepository = PhotoRepository(_databaseService);
-    _loadLocalPhotos();
   }
 
   Future<void> _loadLocalPhotos() async {
@@ -84,6 +84,13 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  fetchTogether() async {
+    // Start fetching data in the background
+     _fetchAndStorePhotos();
+
+    Future.delayed(Duration(milliseconds: 1000), _loadLocalPhotos);
+  }
+
   Future<void> _fetchAndStorePhotos() async {
     setState(() {
       _isLoading = true;
@@ -91,7 +98,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     try {
-      final photos = await _photoRepository.fetchAndStorePhotos();
+      final photos =
+          await _photoRepository.fetchAndStorePhotos(attempt: attempt);
       setState(() {
         _photos = photos;
         _isLoading = false;
@@ -102,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _isLoading = false;
       });
     }
+    attempt++;
   }
 
   Future<void> _clearPhotos() async {
@@ -123,6 +132,8 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
+
+  final scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _fetchAndStorePhotos,
+                  onPressed: _isLoading ? null : fetchTogether,
                   child: _isLoading
                       ? const CircularProgressIndicator()
                       : const Text('Fetch and Store Photos'),
@@ -177,21 +188,26 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: _photos.isEmpty
                 ? const Center(child: Text('No photos available'))
-                : ListView.builder(
-                    itemCount: _photos.length,
-                    itemBuilder: (context, index) {
-                      final photo = _photos[index];
-                      return ListTile(
-                        // leading: Image.network(
-                        //   photo.thumbnailUrl,
-                        //   width: 50,
-                        //   height: 50,
-                        //   fit: BoxFit.cover,
-                        // ),
-                        title: Text(photo.title),
-                        subtitle: Text('Album ID: ${photo.albumId}'),
-                      );
-                    },
+                : RawScrollbar(
+                    controller: scrollController,
+                    thickness: 10,
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: _photos.length,
+                      itemBuilder: (context, index) {
+                        final photo = _photos[index];
+                        return ListTile(
+                          // leading: Image.network(
+                          //   photo.thumbnailUrl,
+                          //   width: 50,
+                          //   height: 50,
+                          //   fit: BoxFit.cover,
+                          // ),
+                          title: Text(photo.title),
+                          subtitle: Text('Album ID: ${photo.id}'),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],
