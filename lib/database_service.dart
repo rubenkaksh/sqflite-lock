@@ -93,10 +93,13 @@ class DatabaseService {
   }
 
   // Insert multiple photos
-  Future<void> insertPhotos(List<Photo> photos) async {
+  Future<void> insertPhotos(List<Photo> photos, {int attempt = 1}) async {
     final Database db = await database;
-    final List<Map<String, dynamic>> storeables =
-        photos.map((e) => e.toJson()).toList();
+    final List<Map<String, dynamic>> storeables = photos.map((e) {
+      e.newId = e.id + 5000 * attempt;
+      return e.toJson();
+    }).toList();
+    print(' >>>============>>> GOING FOR WRITE');
     await db.transaction((txn) async {
       for (var photo in storeables) {
         await txn.insert(
@@ -106,12 +109,15 @@ class DatabaseService {
         );
       }
     });
+    print(' OOO============OOO DONE WITH WRITE');
   }
 
-  // Get all photos
+  // Get all photos - using separate read connection
   Future<List<Photo>> getAllPhotos() async {
     final Database db = await database;
+    print(' <<<============<<< GOING FOR READ');
     final List<Map<String, dynamic>> maps = await db.query('photos');
+    print(' XXX============XXX DONE WITH READ');
     return List.generate(maps.length, (i) {
       return Photo.fromJson(maps[i]);
     });
