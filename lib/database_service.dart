@@ -24,6 +24,14 @@ class DatabaseService {
       path,
       version: 1,
       onCreate: _onCreate,
+      onConfigure: (db) async {
+        // Enable WAL mode for concurrent read/write
+        await db.rawQuery('PRAGMA journal_mode = WAL');
+        // Increase performance
+        await db.execute('PRAGMA synchronous = NORMAL');
+        await db.execute('PRAGMA temp_store = MEMORY');
+        await db.execute('PRAGMA cache_size = 10000');
+      },
     );
   }
 
