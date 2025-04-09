@@ -11,7 +11,10 @@ class Photo {
     required this.title,
     required this.url,
     required this.thumbnailUrl,
+    this.newId = 0,
   });
+
+  int newId;
 
   factory Photo.fromJson(Map<String, dynamic> json) {
     return Photo(
@@ -20,12 +23,13 @@ class Photo {
       title: json['title'],
       url: json['url'],
       thumbnailUrl: json['thumbnailUrl'],
+      newId: json['id']
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'id': newId,
       'albumId': albumId,
       'title': title,
       'url': url,

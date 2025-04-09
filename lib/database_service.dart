@@ -24,6 +24,14 @@ class DatabaseService {
       path,
       version: 1,
       onCreate: _onCreate,
+      onConfigure: (db) async {
+        // Enable WAL mode for concurrent read/write
+        await db.rawQuery('PRAGMA journal_mode = WAL');
+        // Increase performance
+        await db.execute('PRAGMA synchronous = NORMAL');
+        await db.execute('PRAGMA temp_store = MEMORY');
+        await db.execute('PRAGMA cache_size = 10000');
+      },
     );
   }
 
@@ -92,61 +100,92 @@ class DatabaseService {
     );
   }
 
-  // Insert multiple photos using batch
-  Future<void> insertPhotos(List<Photo> photos) async {
+  // Insert multiple photos using batch operations
+  Future<void> insertPhotos(List<Photo> photos, {int attempt = 1}) async {
     final Database db = await database;
-    final List<Map<String, dynamic>> storeables =
-        photos.map((e) => e.toJson()).toList();
-    await db.transaction((txn) async {
-      for (var photo in storeables) {
-        await txn.insert(
-          'photos',
-          photo,
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-      }
-    });
-  }
+    final List<Map<String, dynamic>> storeables = photos.map((e) {
+      e.newId = e.id + 5000 * attempt;
+      return e.toJson();
+    }).toList();
 
-  // Bulk insert method for efficient multiple row insertion
-  Future<void> bulkInsert(String table, List<Map<String, dynamic>> rows) async {
-    if (rows.isEmpty) return;
+    print(' >>>============>>> GOING FOR WRITE');
 
-    final Database db = await database;
+    // Create a batch
+    final Batch batch = db.batch();
 
-    // Get column names from the first row
-    final columns = rows.first.keys.toList();
-
-    // Create the bulk insert SQL
-    final String valuesString = List.generate(
-        rows.length,
-        (i) =>
-            '(' +
-            List.generate(columns.length, (j) => '?').join(', ') +
-            ')').join(', ');
-
-    final String sql = '''
-      INSERT OR REPLACE INTO $table 
-      (${columns.join(', ')}) 
-      VALUES $valuesString
-    ''';
-
-    // Flatten all values into a single list
-    final List<dynamic> args = [];
-    for (var row in rows) {
-      for (var column in columns) {
-        args.add(row[column]);
-      }
+    // Add all insert operations to the batch
+    for (var photo in storeables) {
+      batch.insert(
+        'photos',
+        photo,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
 
-    // Execute bulk insert
-    await db.execute(sql, args);
+    // Execute all operations in a single batch
+    await batch.commit(noResult: true);
+
+    print(' OOO============OOO DONE WITH WRITE');
   }
 
-  // Get all photos
+  // Bulk insert photos using a single SQL statement (most efficient)
+  Future<void> bulkInsertPhotos(List<Photo> photos, {int attempt = 1}) async {
+    if (photos.isEmpty) return;
+
+    final Database db = await database;
+
+    // Prepare photos with adjusted IDs
+    final List<Map<String, dynamic>> storeables = photos.map((e) {
+      e.newId = e.id + 5000 * attempt;
+      return e.toJson();
+    }).toList();
+
+    print(' >>>============>>> GOING FOR BULK WRITE');
+
+    // Use chunking for large datasets to avoid SQLite limits
+    const int chunkSize = 500;
+    for (int i = 0; i < storeables.length; i += chunkSize) {
+      final int end = (i + chunkSize < storeables.length)
+          ? i + chunkSize
+          : storeables.length;
+      final List<Map<String, dynamic>> chunk = storeables.sublist(i, end);
+
+      // Create placeholders for the SQL statement
+      final String valuesString =
+          List.generate(chunk.length, (i) => '(?, ?, ?, ?, ?)').join(', ');
+
+      // Create the SQL statement
+      final String sql = '''
+        INSERT OR REPLACE INTO photos 
+        (id, albumId, title, url, thumbnailUrl) 
+        VALUES $valuesString
+      ''';
+
+      // Flatten values into a single list
+      final List<dynamic> args = [];
+      for (var photo in chunk) {
+        args.addAll([
+          photo['id'],
+          photo['albumId'],
+          photo['title'],
+          photo['url'],
+          photo['thumbnailUrl'],
+        ]);
+      }
+
+      // Execute the SQL statement
+      await db.rawInsert(sql, args);
+    }
+
+    print(' OOO============OOO DONE WITH BULK WRITE');
+  }
+
+  // Get all photos - using separate read connection
   Future<List<Photo>> getAllPhotos() async {
     final Database db = await database;
+    print(' <<<============<<< GOING FOR READ');
     final List<Map<String, dynamic>> maps = await db.query('photos');
+    print(' XXX============XXX DONE WITH READ');
     return List.generate(maps.length, (i) {
       return Photo.fromJson(maps[i]);
     });

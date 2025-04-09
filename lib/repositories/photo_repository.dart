@@ -10,7 +10,7 @@ class PhotoRepository {
   PhotoRepository(this._databaseService)
       : _dio = Dio(BaseOptions(baseUrl: _baseUrl));
 
-  Future<List<Photo>> fetchAndStorePhotos() async {
+  Future<List<Photo>> fetchAndStorePhotos({int attempt = 1}) async {
     try {
       // Fetch photos from API
       final response = await _dio.get('/photos');
@@ -20,18 +20,14 @@ class PhotoRepository {
         final List<Photo> photos =
             jsonList.map((json) => Photo.fromJson(json)).toList();
 
-        // Convert photos to list of maps for bulk insert
-        final List<Map<String, dynamic>> photoMaps =
-            photos.map((photo) => photo.toJson()).toList();
-
-
+        // Store photos using bulk insert for better performance
         final startTime = DateTime.now();
-        // Store photos in local database using bulk insert
-        await _databaseService.bulkInsert('photos', photoMaps);
+        await _databaseService.bulkInsertPhotos(photos, attempt: attempt);
         final endTime = DateTime.now();
 
-        print('Time to download ===========>');
+        print('Time to insert ===========>');
         print(endTime.difference(startTime).inMilliseconds);
+
         return photos;
       } else {
         throw Exception('Failed to load photos');
